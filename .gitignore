@@ -1,0 +1,7 @@
+# Yocto build output
+build/
+downloads/
+sstate-cache/
+tmp/
+*.swp
+.vscode/
