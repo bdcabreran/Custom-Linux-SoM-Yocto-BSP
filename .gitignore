@@ -5,3 +5,10 @@ sstate-cache/
 tmp/
 *.swp
 .vscode/
+
+# Local Claude Code config (skills are private)
+.claude
+
+# Datasheets and vendor docs stay local (copyright)
+docs/08-references/datasheets
+docs/08-references/locked

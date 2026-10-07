@@ -4,7 +4,7 @@ Firmware and Linux BSP for a custom System-on-Module (SoM) with castellated pads
 
 The SoM and carrier are designed in-house. This repo holds the firmware side: Yocto layer, bootloader, kernel and device tree, plus demo apps for 3D graphics, display and camera.
 
-> Hardware design files (schematics, layout) are private. Block diagrams, pin maps and bring-up notes are shared in [`docs/hardware`](docs/hardware). Design files are available on request.
+> Hardware design files (schematics, layout) are private. Block diagrams, pin maps and bring-up notes are shared in [`docs/05-hardware`](docs/05-hardware). Design files are available on request.
 
 ## Target features
 
@@ -38,16 +38,15 @@ The SoM and carrier are designed in-house. This repo holds the firmware side: Yo
 | Rockchip RK3566 | Mali-G52, GLES 3.2 | DSI, RGB, LVDS, HDMI | CSI-2 with ISP | Low cost |
 | NXP i.MX 8M Plus | GC7000UL, GLES 3.1 | DSI, LVDS, HDMI | 2x CSI with ISP | 0.5 mm pitch, NPU |
 
-Full comparison: [`docs/soc-selection.md`](docs/soc-selection.md).
+Full comparison: [`docs/05-hardware/soc-selection.md`](docs/05-hardware/soc-selection.md).
 
 ## Repo layout
 
 ```
-docs/             SoC selection, hardware overview, bring-up notes
-meta-custom-som/  Yocto layer (machine config, recipes)
-u-boot/           Bootloader patches and board config
-linux/            Kernel config, device tree, drivers
+docs/             Numbered docs: requirements, architecture, hardware, testing, ...
+meta-custom-som/  Yocto layer: machine config, U-Boot, kernel and device tree, GPU, camera, images
 apps/             3D, display and camera demo apps
+scripts/          Build, flash and bring-up helper scripts
 ```
 
 ## Roles
