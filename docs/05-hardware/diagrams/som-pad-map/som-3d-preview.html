@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SoM size preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0f172a; color: #e5e7eb;
+    font-family: "DejaVu Sans", Arial, sans-serif; overflow: hidden; }
+  #info { position: absolute; top: 12px; left: 16px; max-width: 340px; font-size: 13px; line-height: 1.45; }
+  #info h1 { font-size: 16px; margin: 0 0 6px 0; }
+  #info p { margin: 0 0 8px 0; color: #94a3b8; }
+  #legend { position: absolute; top: 12px; right: 16px; font-size: 12px; line-height: 1.7; }
+  #legend span.chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+    margin-right: 8px; vertical-align: -1px; border: 1px solid #475569; }
+  #hint { position: absolute; bottom: 12px; right: 16px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div id="info">
+  <h1>SoM size preview - 50 x 50 mm</h1>
+  <p>Draft 1 of the pad map: 180 pad positions at 1 mm pitch, 160 used. Part sizes are real.
+  Part placement and pad order are a sketch, not a layout. The card next to it is a bank card
+  (85.6 x 54 mm) for scale.</p>
+</div>
+<div id="legend"></div>
+<div id="hint">Drag to rotate, scroll to zoom, right-drag to move</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---- Numbers from docs/05-hardware/som-pad-map.md (all in mm) ----
+const SIDE = 50, THICK = 1.6, PITCH = 1.0, PER_SIDE = 45;
+
+const GROUPS = {
+  disp:  { color: 0x15803d, label: 'Display and camera (DSI, CSI-2, control)' },
+  eth:   { color: 0x0e7490, label: 'Ethernet (MDI pairs, LEDs)' },
+  usb:   { color: 0x7c3aed, label: 'USB and PCIe' },
+  stor:  { color: 0xb45309, label: 'microSD and WiFi/BT' },
+  io:    { color: 0x94a3b8, label: 'Low-speed I/O and system' },
+  pwr:   { color: 0xf87171, label: 'Power' },
+  gnd:   { color: 0x1e293b, label: 'Ground' },
+  spare: { color: 0x0f172a, label: 'Spare position' },
+};
+
+// One entry per pad, in order along the edge. "pair" puts a ground on each side of every pair.
+const rep = (g, n) => Array(n).fill(g);
+const pairs = (g, n) => { const a = ['gnd']; for (let i = 0; i < n; i++) a.push(g, g, 'gnd'); return a; };
+const EDGES = {
+  north: [...pairs('disp', 5), ...rep('disp', 4), ...pairs('disp', 3), ...rep('disp', 3),
+          ...rep('stor', 7), ...rep('gnd', 2), ...rep('spare', 3)],
+  south: [...pairs('eth', 4), ...rep('eth', 2), ...pairs('usb', 2), ...rep('usb', 3),
+          ...pairs('usb', 3), ...rep('usb', 3), ...rep('spare', 7)],
+  west:  [...rep('io', 37), ...rep('gnd', 3), ...rep('spare', 5)],
+  east:  [...rep('pwr', 9), ...rep('gnd', 5), ...rep('stor', 13), ...rep('io', 13), ...rep('spare', 5)],
+};
+
+// Parts: real body sizes (x, z, height). Positions are a sketch.
+const PARTS = [
+  { name: 'STM32MP257',  sub: 'TFBGA436 18 x 18', w: 18,   d: 18,   h: 1.2, x: -6,    z: -4,   c: 0x111827 },
+  { name: 'DDR4',        sub: '7.5 x 13.5',       w: 7.5,  d: 13.5, h: 1.2, x: 13,    z: -11.5, c: 0x111827 },
+  { name: 'DDR4',        sub: '7.5 x 13.5',       w: 7.5,  d: 13.5, h: 1.2, x: 13,    z: 3.5,  c: 0x111827 },
+  { name: 'eMMC',        sub: '11.5 x 13',        w: 11.5, d: 13,   h: 1.0, x: 1,     z: 14.5, c: 0x111827 },
+  { name: 'PMIC',        sub: '6.5 x 6.5',        w: 6.5,  d: 6.5,  h: 0.9, x: -15,   z: 15.5, c: 0x1f2937 },
+  { name: 'PHY',         sub: '5 x 5',            w: 5,    d: 5,    h: 0.85, x: 13,   z: 16,   c: 0x1f2937 },
+  { name: '',            sub: '',                 w: 3.2,  d: 2.5,  h: 0.8, x: 19.2,  z: 16,   c: 0x9ca3af }, // 25 MHz crystal
+  { name: '',            sub: '',                 w: 1.6,  d: 1.2,  h: 0.5, x: -17.5, z: -10,  c: 0x9ca3af }, // 40 MHz crystal
+  { name: '',            sub: '',                 w: 2.0,  d: 1.2,  h: 0.6, x: -17.5, z: -7,   c: 0x9ca3af }, // 32.768 kHz crystal
+  { name: '',            sub: '',                 w: 3.2,  d: 2.5,  h: 0.9, x: 8,     z: 19.5, c: 0x1f2937 }, // PCIe clock generator
+];
+// Seven PMIC coils (2.0 x 1.6 and 2.5 x 2.0 mm), placed around the PMIC.
+[[-20.5, 11], [-17.5, 10], [-14.5, 10], [-11.5, 10], [-9.8, 13.5], [-9.8, 16.5], [-9.8, 19.5]].forEach(([x, z], i) =>
+  PARTS.push({ name: '', sub: '', w: i < 2 ? 2.5 : 2.0, d: i < 2 ? 2.0 : 1.6, h: 1.0, x, z, c: 0x374151 }));
+
+// ---- Scene ----
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 2000);
+const controls = new OrbitControls(camera, renderer.domElement);
+// Frame the board and the card together, whatever the window shape is.
+let touched = false;
+controls.addEventListener('start', () => { touched = true; });
+function fitCamera() {
+  const cx = (-SIDE / 2 + SIDE / 2 + 6 + 85.6) / 2, halfW = (SIDE + 6 + 85.6) / 2 + 8, halfD = 34;
+  const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const dist = Math.max(halfW / (t * camera.aspect), halfD / t) * 1.08;
+  const el = THREE.MathUtils.degToRad(52), az = -0.28;
+  controls.target.set(cx, 0, 2);
+  camera.position.set(cx + dist * Math.cos(el) * Math.sin(az), dist * Math.sin(el), 2 + dist * Math.cos(el) * Math.cos(az));
+  controls.update();
+}
+fitCamera();
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-60, 140, 90);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -120, right: 160, top: 120, bottom: -120, near: 1, far: 500 });
+scene.add(sun);
+
+const desk = new THREE.Mesh(new THREE.PlaneGeometry(600, 600),
+  new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.95 }));
+desk.rotation.x = -Math.PI / 2;
+desk.receiveShadow = true;
+scene.add(desk);
+
+function box(w, h, d, color, x, y, z, opts = {}) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color, roughness: opts.rough ?? 0.6, metalness: opts.metal ?? 0.1 }));
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+
+function label(lines, w, d, x, y, z, fg = '#e5e7eb') {
+  const s = 40; // canvas pixels per mm
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(w * s); cv.height = Math.round(d * s);
+  const g = cv.getContext('2d');
+  g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const longest = Math.max(...lines.map(t => t.length));
+  const size = Math.min(cv.height / (lines.length + 1.2), cv.width / (longest * 0.68));
+  lines.forEach((t, i) => {
+    g.font = `${i === 0 ? 'bold ' : ''}${Math.round(size * (i === 0 ? 1 : 0.7))}px DejaVu Sans, Arial, sans-serif`;
+    g.fillText(t, cv.width / 2, cv.height / 2 + (i - (lines.length - 1) / 2) * size * 1.15);
+  });
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 8;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, y, z);
+  scene.add(m);
+}
+
+// Board
+box(SIDE, THICK, SIDE, 0x0b3d2e, 0, THICK / 2, 0, { rough: 0.5 });
+
+// Pads: colored land on top, gold half-hole face on the board edge
+const start = -(PER_SIDE - 1) / 2 * PITCH;
+const counts = {};
+function pad(group, along, edge) {
+  counts[group] = (counts[group] || 0) + 1;
+  const L = 1.4, W = 0.62, e = SIDE / 2;
+  const land = { north: [along, -e + L / 2], south: [along, e - L / 2], west: [-e + L / 2, along], east: [e - L / 2, along] }[edge];
+  const horiz = edge === 'west' || edge === 'east';
+  const col = GROUPS[group].color;
+  box(horiz ? L : W, 0.06, horiz ? W : L, col, land[0], THICK + 0.03, land[1], { metal: 0.3, rough: 0.4 });
+  if (group !== 'spare') {
+    const face = { north: [along, -e - 0.02], south: [along, e + 0.02], west: [-e - 0.02, along], east: [e + 0.02, along] }[edge];
+    box(horiz ? 0.04 : W, THICK, horiz ? W : 0.04, 0xd4a017, face[0], THICK / 2, face[1], { metal: 0.8, rough: 0.3 });
+  }
+}
+for (const [edge, list] of Object.entries(EDGES)) {
+  if (list.length !== PER_SIDE) console.error(edge, 'has', list.length, 'pads, expected', PER_SIDE);
+  list.forEach((g, i) => pad(g, start + i * PITCH, edge));
+}
+
+// Parts
+for (const p of PARTS) {
+  box(p.w, p.h, p.d, p.c, p.x, THICK + p.h / 2, p.z, { rough: 0.45 });
+  if (p.name) label([p.name, p.sub], p.w, p.d, p.x, THICK + p.h + 0.02, p.z);
+}
+
+// Bank card for scale, 85.6 x 54 x 0.76 mm
+const CARD = { w: 85.6, d: 54, h: 0.76, x: SIDE / 2 + 6 + 85.6 / 2, z: 0 };
+box(CARD.w, CARD.h, CARD.d, 0x334155, CARD.x, CARD.h / 2, CARD.z, { rough: 0.35 });
+label(['Bank card', '85.6 x 54 mm'], 60, 22, CARD.x, CARD.h + 0.02, CARD.z, '#94a3b8');
+
+// Dimension labels on the desk
+label(['50 mm'], 26, 7, 0, 0.05, SIDE / 2 + 7);
+label(['50 mm'], 26, 7, -SIDE / 2 - 7, 0.05, 0);
+scene.children[scene.children.length - 1].rotation.z = Math.PI / 2;
+box(SIDE, 0.05, 0.25, 0xe5e7eb, 0, 0.03, SIDE / 2 + 2.5);
+box(0.25, 0.05, SIDE, 0xe5e7eb, -SIDE / 2 - 2.5, 0.03, 0);
+
+// Legend
+const used = Object.entries(counts).filter(([g]) => g !== 'spare').reduce((a, [, n]) => a + n, 0);
+document.getElementById('legend').innerHTML =
+  Object.entries(GROUPS).map(([k, g]) =>
+    `<div><span class="chip" style="background:#${g.color.toString(16).padStart(6, '0')}"></span>${g.label}: ${counts[k] || 0}</div>`
+  ).join('') + `<div style="color:#94a3b8">Used ${used} of ${PER_SIDE * 4} positions</div>`;
+window.__padCounts = { ...counts, used };
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  if (!touched) fitCamera();
+});
+renderer.setAnimationLoop(() => renderer.render(scene, camera));
+</script>
+</body>
+</html>

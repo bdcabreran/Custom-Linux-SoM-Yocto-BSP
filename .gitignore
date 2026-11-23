@@ -9,6 +9,12 @@ tmp/
 # Local Claude Code config (skills are private)
 .claude
 
-# Datasheets and vendor docs stay local (copyright)
-docs/08-references/datasheets
+# Datasheets and vendor design files stay local (copyright, ST license).
+# Each folder keeps a tracked README that says where the files come from.
+docs/08-references/datasheets/*
+!docs/08-references/datasheets/README.md
+docs/08-references/ev1-mb1936/*
+!docs/08-references/ev1-mb1936/README.md
+docs/08-references/dk-mb1605/*
+!docs/08-references/dk-mb1605/README.md
 docs/08-references/locked

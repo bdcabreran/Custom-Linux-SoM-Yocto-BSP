@@ -33,7 +33,9 @@ Documentation hub for the custom SoM, its carrier board and the Yocto BSP. Each 
 *(No documents yet)*
 
 ### 05 - Hardware
-- [soc-selection.md](05-hardware/soc-selection.md) - SoC candidates, prices, castellated pad budget and design notes
+- [soc-selection.md](05-hardware/soc-selection.md) - SoC decision (STM32MP257), ST reference designs, candidates, prices, castellated pad budget and design notes
+- [som-pad-map.md](05-hardware/som-pad-map.md) - Draft 1 of the SoM to carrier pad map: 160 pads, signal groups, EV1 balls and open decisions
+- [ev1-reference-block-diagram.md](05-hardware/ev1-reference-block-diagram.md) - Block diagram, buses and power tree of ST's EV1 reference board, built from its netlist
 - [hw-framework/hw-docs-standard.md](05-hardware/hw-framework/hw-docs-standard.md) - The standard the hardware docs follow
 
 ### 06 - Testing
@@ -43,7 +45,10 @@ Documentation hub for the custom SoM, its carrier board and the Yocto BSP. Each 
 *(No documents yet)*
 
 ### 08 - References
-*(No documents yet)*
+- [README.md](08-references/README.md) - Lookup table: which reference file answers which question
+- [ev1-mb1936/README.md](08-references/ev1-mb1936/README.md) - STM32MP257F-EV1 schematic, Altium project, BOM and manufacturing files (pointer, files stay local)
+- [dk-mb1605/README.md](08-references/dk-mb1605/README.md) - STM32MP257F-DK schematic (pointer, files stay local)
+- [datasheets/README.md](08-references/datasheets/README.md) - ST datasheets, errata, application notes and user manual (pointer, files stay local)
 
 ### 09 - Issues
 *(No documents yet)*

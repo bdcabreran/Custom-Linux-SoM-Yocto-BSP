@@ -1,0 +1,71 @@
+@startuml
+hide empty description
+
+left to right direction
+
+skinparam backgroundColor       #0f172a
+skinparam DefaultFontColor      #e5e7eb
+skinparam ArrowColor            #ef4444
+skinparam ArrowFontColor        #cbd5e1
+
+skinparam rectangle {
+  BackgroundColor               #1e293b
+  BorderColor                   #475569
+  FontColor                     #cbd5e1
+  RoundCorner                   8
+}
+
+title STM32MP257F-EV1 (MB1936 rev E01) - power tree, from the netlist (red = power)
+
+rectangle "DC jack CN20\nVIN_JACK" as JACK
+rectangle "Fuse F1 +\nbuck U37 ST1S40\n(coil L8)" as PRE #166534
+rectangle "ST-LINK USB-C CN21\nVBUS_STLK" as USBIN
+rectangle "eFuse U52 TPS259535 +\nswitch U49 STMPS2151\n(enabled by the ST-LINK)" as SW #166534
+rectangle "Jumper JP4\nsource select" as JP4
+rectangle "5V_VIN" as V5
+rectangle "PMIC U26\nSTPMIC25APQR" as PMIC #166534
+
+rectangle "USB host switch U41\nSTMPS2252 -> CN19" as USBH
+rectangle "CAN transceivers U23, U31\nGPIO header CN5" as V5LOAD
+
+rectangle "VDDCPU (BUCK1, L3)\nMPU CPU cores, 7 balls" as R1
+rectangle "VDDCORE (BUCK2, L2)\nMPU logic, 10 balls" as R2
+rectangle "VDDGPU (BUCK3, L4)\nMPU GPU, 6 balls" as R3
+rectangle "VDDIO (BUCK4, L6)\nMPU I/O, 10 balls,\nJTAG header CN22" as R4
+rectangle "1V8 (BUCK5, L1)\nMPU analog and PHY supplies,\neMMC I/O, DSI connector" as R5
+rectangle "VDD_DDR (BUCK6, L5)\nMPU DDR I/O, 8 balls,\nDDR4 U28 + U29" as R6
+rectangle "3V3 (BUCK7, L7)\nconnectors CN2, CN3, CN4, CN5,\nCN13, CN25 and board logic" as R7
+rectangle "VDD_EMMC (LDO2)\neMMC U24" as L2
+rectangle "VTT_DDR (LDO3, fed from VDD_DDR)\nDDR4 address termination" as L3
+rectangle "VDD3V3_USB (LDO4)\nUSB PHY supply" as L4
+rectangle "VPP_DDR (LDO5)\nDDR4 U28 + U29" as L5
+rectangle "VDD_SDCARD (LDO7)\nmicroSD CN1" as L7
+rectangle "VDDIO_SDCARD (LDO8)\nSD I/O domain, MPU ball G10" as L8
+rectangle "VREFDDR\nDDR4 reference" as VREF
+rectangle "LDO6 (VDD_XXXX)\nnot used" as L6 #7f1d1d
+
+JACK  --> PRE
+PRE   --> JP4 : pin 3
+USBIN --> SW
+SW    --> JP4 : 5V_STLK, pin 1
+JP4   --> V5  : pin 2
+V5    --> PMIC
+V5    --> USBH
+V5    --> V5LOAD
+
+PMIC --> R1
+PMIC --> R2
+PMIC --> R3
+PMIC --> R4
+PMIC --> R5
+PMIC --> R6
+PMIC --> R7
+PMIC --> L2
+PMIC --> L3
+PMIC --> L4
+PMIC --> L5
+PMIC --> L7
+PMIC --> L8
+PMIC --> VREF
+PMIC --> L6
+@enduml

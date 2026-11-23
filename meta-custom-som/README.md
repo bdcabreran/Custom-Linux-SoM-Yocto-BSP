@@ -1,6 +1,10 @@
 # meta-custom-som
 
-Yocto layer for the custom SoM and carrier.
+Yocto layer for the custom SoM and carrier. The SoC is the STM32MP257F, so this layer sits on top of ST's `meta-st-stm32mp` (branch `scarthgap`, OpenSTLinux 6.2).
+
+Machine: `custom-som-mp257`. Until our own device tree exists it builds the STM32MP257F-EV1 device trees, so the image runs on an EV1 board. It has not been built yet.
+
+The GPU driver is a vendor binary. To enable it, add `ACCEPT_EULA_custom-som-mp257 = "1"` to `local.conf`.
 
 | Folder | What goes here |
 |---|---|

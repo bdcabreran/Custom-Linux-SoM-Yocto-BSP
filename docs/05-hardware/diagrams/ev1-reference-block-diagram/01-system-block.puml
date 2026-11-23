@@ -1,0 +1,119 @@
+@startuml
+hide empty description
+
+' Flow left to right: inputs on the left, the MPU in the middle, peripherals stacked on the right.
+left to right direction
+
+skinparam backgroundColor       #0f172a
+skinparam DefaultFontColor      #e5e7eb
+skinparam ArrowColor            #cbd5e1
+skinparam ArrowFontColor        #cbd5e1
+
+skinparam rectangle {
+  BackgroundColor               #1e293b
+  BorderColor                   #475569
+  FontColor                     #cbd5e1
+  RoundCorner                   8
+}
+skinparam component {
+  BackgroundColor               #334155
+  BorderColor                   #94a3b8
+  FontColor                     #e5e7eb
+}
+skinparam package {
+  BackgroundColor               #0f172a
+  BorderColor                   #334155
+  FontColor                     #94a3b8
+}
+
+title STM32MP257F-EV1 (MB1936 rev E01) - system block, from the netlist\n(red=power, blue=I2C, purple=parallel bus, green=differential pairs, grey=low-speed I/O)
+
+package "Power and control" {
+  rectangle "5 V input\nDC jack CN20 or\nST-LINK USB-C CN21\n(JP4 selects)" as VIN
+  rectangle "PMIC U26\nSTPMIC25APQR\n7 bucks + LDOs" as PMIC #166534
+  rectangle "Boot switches SW1\nBOOT0 to BOOT3" as BOOT
+  rectangle "Crystals\nX2 40 MHz (HSE)\nX1 32.768 kHz (LSE)" as XTAL
+}
+
+package "Debug" {
+  rectangle "ST-LINK V3EC U36\nSTM32F723IEK6\nUSB-C CN21" as STLK
+  rectangle "JTAG / SWD header\nMIPI10 CN22" as JTAG
+}
+
+component "MPU U27\nSTM32MP257FAI3\nTFBGA436, 0.8 mm pitch\n2x Cortex-A35 + Cortex-M33" as MPU #8b5cf6
+
+package "Memory" {
+  rectangle "DDR4 U28 + U29\n2x MT40A1G16TB-062E\n16 bits each" as DDR
+  rectangle "eMMC U24\nTHGBMTG5D1LBAIL" as EMMC
+  rectangle "microSD CN1\nESD U8, U9" as SD
+  rectangle "NOR flash U22\nMX25L51245G" as NOR
+}
+
+package "Ethernet (3x RTL8211F-CG)" {
+  rectangle "PHY U39\nRJ45 CN17" as PHY1
+  rectangle "PHY U38\nRJ45 CN16" as PHY2
+  rectangle "PHY U40\nRJ45 CN18" as PHY3
+}
+
+package "Display and camera" {
+  rectangle "DSI connector CN3\nalso HDMI I2S + CEC" as DSI
+  rectangle "LVDS connector CN2\nfilters U5, U6, U7" as LVDS
+  rectangle "Camera connector CN4\nfilters U17, U18" as CAM
+}
+
+package "USB and PCIe" {
+  rectangle "USB hub U34\nUSB2514B" as HUB
+  rectangle "2x USB Type-A CN19\npower switch U41" as USBA
+  rectangle "USB Type-C CN15\nprotection U50 TCPP03-M20" as USBC
+  rectangle "Mini PCIe CN13\n100 MHz clock U33" as PCIE
+}
+
+package "CAN FD (2x MCP2562FD)" {
+  rectangle "Transceiver U23\nDB9 CN9" as CAN1
+  rectangle "Transceiver U31\nDB9 CN11" as CAN3
+}
+
+package "Expansion and user I/O" {
+  rectangle "40-pin GPIO header CN5\n25 GPIO" as EXP
+  rectangle "mikroBUS CN25\nop-amp U53 on AN" as MKB
+  rectangle "4 LEDs, 2 user buttons,\ntamper, reset, wake-up" as UI
+}
+
+VIN   -[#ef4444]-> PMIC : 5V_VIN
+PMIC  -[#ef4444]-> MPU  : VDDCPU, VDDCORE, VDDGPU,\nVDDIO, 1V8, VDD_DDR
+PMIC  -[#60a5fa]-  MPU  : I2C7, wake-up, reset
+BOOT  -[#94a3b8]-> MPU  : boot source
+XTAL  -[#94a3b8]-> MPU  : clocks
+STLK  -[#94a3b8]-> MPU  : SWD, reset,\nUART5 + USART2
+JTAG  -[#94a3b8]-> MPU  : JTAG
+
+MPU -[#8b5cf6]-> DDR   : DDR4, 32-bit data
+MPU -[#8b5cf6]-> EMMC  : SDMMC2, 8-bit
+MPU -[#8b5cf6]-> SD    : SDMMC1, 4-bit
+MPU -[#8b5cf6]-> NOR   : QSPI1, 4-bit
+
+MPU -[#8b5cf6]-> PHY1  : ETH1 RGMII + MDIO
+MPU -[#8b5cf6]-> PHY2  : ETH2 RGMII + MDIO
+MPU -[#8b5cf6]-> PHY3  : ETH3 RGMII\n(MDIO shared with ETH1)
+
+MPU -[#34d399]-> DSI   : DSI, 4 lanes + clock
+MPU -[#34d399]-> LVDS  : LVDS1, 4 lanes + clock
+MPU <-[#34d399]- CAM   : CSI-2, 2 lanes + clock
+MPU -[#60a5fa]-  DSI   : I2C2
+MPU -[#60a5fa]-  LVDS  : I2C2
+MPU -[#60a5fa]-  CAM   : I2C2
+
+MPU -[#34d399]-> HUB   : USB host
+HUB -[#34d399]-> USBA  : 2 ports
+HUB -[#34d399]-> PCIE  : USB
+MPU -[#34d399]-> USBC  : USB dual role
+MPU -[#60a5fa]-  USBC  : I2C1 + CC1 / CC2
+MPU -[#34d399]-> PCIE  : PCIe, 1 lane
+
+MPU -[#94a3b8]-> CAN1  : FDCAN1
+MPU -[#94a3b8]-> CAN3  : FDCAN3
+
+MPU -[#94a3b8]-> EXP   : GPIO
+MPU -[#94a3b8]-> MKB   : SPI, UART, PWM, analog
+MPU -[#94a3b8]-> UI    : GPIO
+@enduml

@@ -10,10 +10,10 @@ The SoM and carrier are designed in-house. This repo holds the firmware side: Yo
 
 | Function | Target |
 |---|---|
-| CPU | Arm Cortex-A, embedded Linux (Yocto) |
-| Graphics | 3D GPU, OpenGL ES 3.x / Vulkan |
-| Display | MIPI DSI or parallel RGB, with touch |
-| Camera | MIPI CSI-2 |
+| CPU | STM32MP257F: dual Cortex-A35 at 1.5 GHz plus Cortex-M33, embedded Linux (Yocto) |
+| Graphics | 3D GPU, OpenGL ES 3.1 / Vulkan |
+| Display | MIPI DSI (4-lane), with touch |
+| Camera | MIPI CSI-2 (2-lane) with ISP |
 | Storage | eMMC on SoM, microSD on carrier |
 | Network | Gigabit Ethernet (PHY on SoM) |
 | I/O | GPIO, I2C, SPI, UART, CAN for peripherals |
@@ -21,14 +21,24 @@ The SoM and carrier are designed in-house. This repo holds the firmware side: Yo
 
 ## Status
 
-- [ ] SoC selection
+- [x] SoC selection: STM32MP257F (`STM32MP257FAI3`, TFBGA436, 0.8 mm pitch)
 - [ ] Pad map (SoM to carrier)
 - [ ] SoM and carrier design
 - [ ] Board bring-up (power, DDR, first boot)
 - [ ] Yocto BSP (U-Boot, kernel, device tree)
 - [ ] Display, camera and 3D demos
 
+## Reference design
+
+The SoM starts from ST's STM32MP257F-EV1 evaluation board, which uses the same SoC in the same package. This is the block diagram of that board, built from its netlist. It is not our SoM yet.
+
+![Block diagram of the STM32MP257F-EV1 reference board](docs/05-hardware/diagrams/ev1-reference-block-diagram/01-system-block.svg)
+
+Buses, power tree and notes per block: [`docs/05-hardware/ev1-reference-block-diagram.md`](docs/05-hardware/ev1-reference-block-diagram.md).
+
 ## SoC candidates
+
+Selected: **STM32MP257**. The others are kept here for the record.
 
 | SoC | 3D GPU | Display | Camera | Notes |
 |---|---|---|---|---|
@@ -38,7 +48,7 @@ The SoM and carrier are designed in-house. This repo holds the firmware side: Yo
 | Rockchip RK3566 | Mali-G52, GLES 3.2 | DSI, RGB, LVDS, HDMI | CSI-2 with ISP | Low cost |
 | NXP i.MX 8M Plus | GC7000UL, GLES 3.1 | DSI, LVDS, HDMI | 2x CSI with ISP | 0.5 mm pitch, NPU |
 
-Full comparison: [`docs/05-hardware/soc-selection.md`](docs/05-hardware/soc-selection.md).
+Full comparison, the reasons for the choice and the ST reference designs: [`docs/05-hardware/soc-selection.md`](docs/05-hardware/soc-selection.md).
 
 ## Repo layout
 
